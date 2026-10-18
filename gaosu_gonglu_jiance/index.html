@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高速公路边坡自动化监测 · 全线总览大盘</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root{
+    --bg:#060b1a; --panel:rgba(16,30,66,.55); --panel-br:rgba(64,120,255,.22);
+    --txt:#dce6ff; --sub:#7f92c0; --cyan:#2bd4ff; --blue:#3d7bff;
+    --green:#17d6a0; --yellow:#ffcf3a; --orange:#ff9a3c; --red:#ff4d5e;
+  }
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(45,90,220,.25), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(43,212,255,.12), transparent 55%),
+      var(--bg);
+    color:var(--txt); font-family:"PingFang SC","Microsoft YaHei",-apple-system,Segoe UI,sans-serif;
+    overflow:hidden;
+  }
+  .screen{width:1920px;height:1080px;transform-origin:top left;padding:22px 28px;display:flex;flex-direction:column;gap:16px;}
+  /* header */
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 26px;border:1px solid var(--panel-br);border-radius:14px;
+    background:linear-gradient(90deg, rgba(23,46,110,.65), rgba(10,20,50,.35));
+    position:relative;overflow:hidden;}
+  header::before{content:"";position:absolute;inset:0;pointer-events:none;background:
+    repeating-linear-gradient(90deg,transparent 0 38px,rgba(61,123,255,.05) 38px 40px);}
+  .title{font-size:30px;font-weight:800;letter-spacing:3px;
+    background:linear-gradient(90deg,#fff,#67b6ff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .title small{display:block;font-size:13px;letter-spacing:6px;color:var(--sub);font-weight:400;margin-top:4px;-webkit-text-fill-color:var(--sub);}
+  .clock{text-align:right;font-size:14px;color:var(--sub);}
+  .corner-btn{position:relative;z-index:2;display:inline-flex;align-items:center;gap:8px;
+    padding:9px 24px;font-size:15px;font-weight:700;letter-spacing:3px;
+    color:#dcebff;-webkit-text-fill-color:#dcebff;text-decoration:none;border-radius:22px;
+    border:1px solid rgba(103,182,255,.5);
+    background:linear-gradient(180deg,rgba(61,123,255,.3),rgba(61,123,255,.1));
+    box-shadow:0 0 16px rgba(61,123,255,.25) inset,0 0 10px rgba(61,123,255,.15);transition:all .2s;}
+  .corner-btn::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+  .corner-btn:hover{color:#fff;-webkit-text-fill-color:#fff;border-color:#67b6ff;
+    background:linear-gradient(180deg,rgba(61,123,255,.5),rgba(61,123,255,.22));
+    box-shadow:0 0 20px rgba(103,182,255,.5);}
+  .clock b{font-size:26px;color:var(--cyan);font-weight:700;letter-spacing:1px;}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--green);margin-left:14px;}
+  .live i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:blink 1.4s infinite;}
+  @keyframes blink{50%{opacity:.25}}
+  /* kpi row */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;}
+  .kpi{border:1px solid var(--panel-br);border-radius:12px;background:var(--panel);padding:14px 18px;position:relative;overflow:hidden;display:flex;align-items:baseline;gap:12px;}
+  .kpi .n{font-size:40px;font-weight:800;line-height:1;}
+  .kpi .l{font-size:14px;color:var(--sub);letter-spacing:1px;}
+  .kpi .bar{position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .c-cyan{color:var(--cyan)} .c-green{color:var(--green)} .c-yellow{color:var(--yellow)}
+  .c-orange{color:var(--orange)} .c-red{color:var(--red)} .c-sub{color:var(--sub)}
+  .b-cyan{background:var(--cyan)} .b-green{background:var(--green)} .b-yellow{background:var(--yellow)}
+  .b-orange{background:var(--orange)} .b-red{background:var(--red)} .b-sub{background:var(--sub)}
+  /* main grid */
+  .main{flex:1;display:grid;grid-template-columns:340px 1fr 380px;gap:16px;min-height:0;}
+  .panel{border:1px solid var(--panel-br);border-radius:12px;background:var(--panel);display:flex;flex-direction:column;min-height:0;}
+  .ph{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--panel-br);font-size:15px;font-weight:700;letter-spacing:1px;flex:0 0 auto;min-height:44px;}
+  .ph::before{content:"";width:4px;height:16px;background:linear-gradient(var(--cyan),var(--blue));border-radius:2px;}
+  .pb{padding:10px 14px;overflow:auto;flex:1;}
+  .pb.no-scroll{overflow:hidden;}
+  .col-l,.col-r{display:flex;flex-direction:column;gap:16px;min-height:0;}
+  /* left: distribution fits content, live-values fills rest */
+  .col-l .panel.fit{flex:0 0 auto;}
+  .col-l .panel.grow,.col-r .panel{flex:1 1 0;min-height:0;}
+  /* sensor list */
+  .srow{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-radius:7px;margin-bottom:3px;background:rgba(61,123,255,.06);font-size:12.5px;}
+  .srow .nm{color:var(--txt);}
+  .srow .vl{font-weight:700;}
+  .srow .st{font-size:11px;padding:2px 8px;border-radius:10px;}
+  .st.ok{color:var(--green);background:rgba(23,214,160,.12)}
+  .st.y{color:var(--yellow);background:rgba(255,207,58,.14)}
+  .st.o{color:var(--orange);background:rgba(255,154,60,.14)}
+  .st.r{color:var(--red);background:rgba(255,77,94,.14)}
+  /* map */
+  .map{position:relative;height:100%;}
+  svg{width:100%;height:100%;display:block;}
+  .pt{cursor:pointer;}
+  .pt circle.core{stroke:#fff;stroke-width:1.2;}
+  .ripple{fill:none;}
+  .legend{position:absolute;left:16px;bottom:14px;display:flex;gap:16px;font-size:12px;color:var(--sub);background:rgba(6,11,26,.5);padding:8px 12px;border-radius:8px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:10px;height:10px;border-radius:50%;}
+  .maptag{position:absolute;right:16px;top:14px;font-size:12px;color:var(--sub);}
+  /* alarm list */
+  .alarm{display:flex;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:rgba(255,77,94,.05);border-left:3px solid var(--red);}
+  .alarm.o{background:rgba(255,154,60,.05);border-color:var(--orange);}
+  .alarm.y{background:rgba(255,207,58,.05);border-color:var(--yellow);}
+  .alarm .lv{font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;height:fit-content;white-space:nowrap;}
+  .alarm.r .lv{color:#fff;background:var(--red)} .alarm.o .lv{color:#1a1200;background:var(--orange)} .alarm.y .lv{color:#1a1200;background:var(--yellow)}
+  .alarm .ct{font-size:12px;line-height:1.4;}
+  .alarm .ct b{color:var(--txt)} .alarm .ct .t{color:var(--sub);font-size:11px;}
+  /* trend */
+  .trend-wrap{display:flex;flex-direction:column;height:100%;min-height:0;}
+  canvas{width:100%;flex:1;min-height:120px;}
+  .tcap{display:flex;gap:18px;font-size:12px;color:var(--sub);padding-top:6px;}
+  .tcap span{display:inline-flex;align-items:center;gap:6px;}
+  .tcap i{width:14px;height:3px;border-radius:2px;}
+  .footer{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .mini{border:1px solid var(--panel-br);border-radius:12px;background:var(--panel);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+  .mini .l{font-size:12px;color:var(--sub);} .mini .n{font-size:22px;font-weight:800;}
+  .mini .u{font-size:12px;color:var(--sub);font-weight:400;margin-left:3px;}
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+  <header>
+    <div class="title">高速公路边坡自动化监测 · 全线总览大盘
+      <small>边坡位移 · 孔隙水压 · 降雨 · 支护应力全天候在线监测　｜　毫米级形变实时感知，三级预警抢在失稳之前</small>
+    </div>
+    <a class="corner-btn" href="index_3D.html">项目概述</a>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><span class="bar b-cyan"></span><div class="n c-cyan">42</div><div class="l">测点总数</div></div>
+    <div class="kpi"><span class="bar b-green"></span><div class="n c-green">40</div><div class="l">在线运行</div></div>
+    <div class="kpi"><span class="bar b-yellow"></span><div class="n c-yellow">2</div><div class="l">黄色预警</div></div>
+    <div class="kpi"><span class="bar b-orange"></span><div class="n c-orange">3</div><div class="l">橙色预警</div></div>
+    <div class="kpi"><span class="bar b-red"></span><div class="n c-red">1</div><div class="l">红色预警</div></div>
+    <div class="kpi"><span class="bar b-sub"></span><div class="n c-sub">2</div><div class="l">离线/维护</div></div>
+  </div>
+
+  <div class="main">
+    <!-- left -->
+    <div class="col-l">
+      <div class="panel fit">
+        <div class="ph">监测分类 · 测点分布</div>
+        <div class="pb" id="catList"></div>
+      </div>
+      <div class="panel grow">
+        <div class="ph">重点测点实时值 · K108+500 高边坡</div>
+        <div class="pb no-scroll" id="liveList"></div>
+      </div>
+    </div>
+
+    <!-- center 3D terrain -->
+    <div class="panel">
+      <div class="ph" style="justify-content:space-between;flex-shrink:0;">
+        <span id="centerPanelTitle">全线测点分布 · 三维地形</span>
+        <!-- 地图风格 tab 切换器 -->
+        <div style="display:inline-flex;border:1px solid rgba(64,120,255,.4);border-radius:6px;overflow:hidden;flex-shrink:0;">
+          <button id="tab3d" onclick="switchTab('3d')" style="
+            display:inline-flex;align-items:center;gap:4px;
+            padding:3px 10px;font-size:11px;font-weight:600;letter-spacing:.5px;
+            cursor:pointer;border:none;transition:all .18s;white-space:nowrap;
+            color:#2bd4ff;background:rgba(43,212,255,.15);
+          ">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <path d="M1 9 L5.5 2 L10 9Z" stroke="#2bd4ff" stroke-width="1.2" fill="rgba(43,212,255,.2)" stroke-linejoin="round"/>
+              <path d="M3 7h5" stroke="#2bd4ff" stroke-width="1" stroke-linecap="round"/>
+            </svg>
+            三维
+          </button>
+          <button id="tabImg" onclick="switchTab('img')" style="
+            display:inline-flex;align-items:center;gap:4px;
+            padding:3px 10px;font-size:11px;font-weight:600;letter-spacing:.5px;
+            cursor:pointer;border:none;border-left:1px solid rgba(64,120,255,.4);transition:all .18s;white-space:nowrap;
+            color:var(--sub);background:transparent;
+          ">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <rect x="1" y="1" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+              <circle cx="3.5" cy="3.8" r="1" fill="currentColor"/>
+              <path d="M1 7.5l2.5-2 2 1.5 2-2.5 2.5 3" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            实景图
+          </button>
+        </div>
+      </div>
+      <div class="pb map" style="position:relative;overflow:hidden;">
+        <span class="maptag" id="centerMapTag">xx 高速 K98 — K135 段</span>
+        <!-- 3D 地形层 -->
+        <div id="map3d" style="position:absolute;inset:0;transition:opacity .25s;"></div>
+        <!-- 图片层（默认隐藏） -->
+        <div id="imgView" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,9,22,.85);">
+          <img src="3d.png" alt="3D实景图" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;box-shadow:0 0 24px rgba(43,212,255,.18);">
+        </div>
+        <div class="legend" id="centerLegend">
+          <span><i style="background:var(--green)"></i>正常</span>
+          <span><i style="background:var(--yellow)"></i>黄色</span>
+          <span><i style="background:var(--orange)"></i>橙色</span>
+          <span><i style="background:var(--red)"></i>红色</span>
+          <span><i style="background:var(--sub)"></i>离线</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- right -->
+    <div class="col-r">
+      <div class="panel">
+        <div class="ph">AI 预警事件</div>
+        <div class="pb no-scroll" id="alarmList"></div>
+      </div>
+      <div class="panel">
+        <div class="ph">全线趋势 · 近 24h（位移 / 雨量 / 孔隙水压）</div>
+        <div class="pb trend-wrap">
+          <canvas id="trend"></canvas>
+          <div class="tcap">
+            <span><i style="background:#2bd4ff"></i>累计位移 mm</span>
+            <span><i style="background:#ffcf3a"></i>降雨量 mm</span>
+            <span><i style="background:#17d6a0"></i>孔隙水压 kPa</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="mini"><div class="l">最大累计位移<br>K108+500 GNSS-07</div><div><span class="n c-orange">38.6</span><span class="u">mm</span></div></div>
+    <div class="mini"><div class="l">1h 最大雨强<br>K121+200 雨量-03</div><div><span class="n c-orange">42.3</span><span class="u">mm/h</span></div></div>
+    <div class="mini"><div class="l">最高孔隙水压<br>K108+500 渗压-05</div><div><span class="n c-yellow">86.4</span><span class="u">kPa</span></div></div>
+    <div class="mini"><div class="l">最大挡墙应力<br>K130+000 应力-02</div><div><span class="n c-red">268</span><span class="u">MPa</span></div></div>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+/* ---- auto scale to viewport (fill / maximize) ---- */
+function fit(){
+  const s=document.getElementById('screen');
+  const kx=window.innerWidth/1920, ky=window.innerHeight/1080;
+  s.style.transform='scale('+kx+','+ky+')';
+  document.body.style.width=window.innerWidth+'px';
+  document.body.style.height=window.innerHeight+'px';
+}
+window.addEventListener('resize',fit); fit();
+
+/* ================= 数据驱动：从接口获取后动态渲染 ================= */
+const STATUS_COLOR={ok:'green',y:'yellow',o:'orange',r:'red',off:'sub'};
+const STATUS_TEXT={ok:'正常',y:'黄警',o:'橙警',r:'红警',off:'离线'};
+
+/* 接口失败时的兜底数据（与 data/dashboard.json 保持结构一致） */
+const FALLBACK={
+  meta:{title:'高速公路边坡自动化监测 · 全线总览大盘',subtitle:'',section:'xx 高速 K98 — K135 段'},
+  kpis:[{label:'测点总数',value:42,color:'cyan'},{label:'在线运行',value:40,color:'green'},{label:'黄色预警',value:2,color:'yellow'},{label:'橙色预警',value:3,color:'orange'},{label:'红色预警',value:1,color:'red'},{label:'离线/维护',value:2,color:'sub'}],
+  categories:[
+    {group:'位移监测',items:[{name:'GNSS 北斗接收机',count:8,status:'ok'},{name:'拉线位移计',count:5,status:'y'},{name:'固定式测斜仪',count:5,status:'ok'},{name:'压差式静力水准仪',count:4,status:'ok'}]},
+    {group:'环境监测',items:[{name:'渗压计',count:4,status:'o'},{name:'翻斗式雨量计',count:3,status:'y'},{name:'土壤含水率(TDR)',count:3,status:'ok'},{name:'温湿度传感器',count:3,status:'ok'}]},
+    {group:'结构应力监测',items:[{name:'锚杆/锚索应力计',count:4,status:'ok'},{name:'挡土墙钢筋应力计',count:3,status:'r'}]}
+  ],
+  liveValues:[{name:'GNSS 累计位移',value:'38.6 mm',status:'o'},{name:'深部位移(测斜)',value:'14.2 mm',status:'y'},{name:'孔隙水压',value:'86.4 kPa',status:'y'},{name:'累计雨量(24h)',value:'128.6 mm',status:'o'},{name:'1h 雨强',value:'42.3 mm/h',status:'o'},{name:'土壤含水率',value:'41.2 %',status:'ok'},{name:'环境温度',value:'23.4 ℃',status:'ok'},{name:'环境湿度',value:'78 %',status:'ok'},{name:'锚索应力',value:'86 MPa',status:'ok'},{name:'挡墙应力',value:'268 MPa',status:'r'}],
+  alarms:[{level:'r',levelText:'红色',point:'K130+000 挡土墙钢筋应力计 应力-02',message:'结构应力超红色阈值，疑似支挡结构内力异常，已短信+App推送',time:'14:28:11'},{level:'o',levelText:'橙色',point:'K108+500 GNSS-07',message:'累计位移 38.6mm 超橙色阈值，边坡表面持续位移',time:'13:52:40'},{level:'o',levelText:'橙色',point:'K108+500 渗压计 渗压-05',message:'降雨后孔隙水压快速上升至 86.4kPa',time:'13:49:02'},{level:'o',levelText:'橙色',point:'K121+200 雨量计 雨量-03',message:'1h 雨强 42.3mm/h 超橙色阈值，降雨强度持续偏高',time:'13:40:55'},{level:'y',levelText:'黄色',point:'K115+700 拉线位移计 位移-11',message:'表面相对位移 12.4mm 达黄色阈值',time:'12:30:18'},{level:'y',levelText:'黄色',point:'K108+500 测斜仪 测斜-04',message:'深部倾角速率上升，达黄色预警',time:'11:58:30'}],
+  footer:[{label:'最大累计位移<br>K108+500 GNSS-07',value:'38.6',unit:'mm',color:'orange'},{label:'1h 最大雨强<br>K121+200 雨量-03',value:'42.3',unit:'mm/h',color:'orange'},{label:'最高孔隙水压<br>K108+500 渗压-05',value:'86.4',unit:'kPa',color:'yellow'},{label:'最大挡墙应力<br>K130+000 应力-02',value:'268',unit:'MPa',color:'red'}],
+  map:{startLabel:'起点 K98',endLabel:'终点 K135',keyLabel:'K108+500 高边坡',points:[[0.10,'ok'],[0.18,'y'],[0.26,'o'],[0.33,'ok'],[0.40,'o'],[0.47,'ok'],[0.54,'off'],[0.60,'y'],[0.66,'ok'],[0.72,'o'],[0.80,'r'],[0.86,'ok'],[0.92,'off'],[0.97,'ok']].map(([t,status])=>({t,status}))},
+  trend:{points:48,series:{displacement:{label:'累计位移 mm',color:'#2bd4ff'},rain:{label:'降雨量 mm',color:'#ffcf3a'},pore:{label:'孔隙水压 kPa',color:'#17d6a0'}}}
+};
+
+/* ---- 渲染：顶部标题 ---- */
+function renderMeta(m){
+  if(!m)return;
+  const t=document.querySelector('.title');
+  if(t&&m.title){t.childNodes[0].nodeValue=m.title;}
+  const sm=document.querySelector('.title small');
+  if(sm&&m.subtitle){sm.textContent=m.subtitle;}
+  const tag=document.querySelector('.maptag');
+  if(tag&&m.section){tag.textContent=m.section;}
+}
+
+/* ---- 渲染：KPI ---- */
+function renderKpis(list){
+  const box=document.querySelector('.kpis');if(!box)return;box.innerHTML='';
+  list.forEach(k=>{const d=document.createElement('div');d.className='kpi';
+    d.innerHTML=`<span class="bar b-${k.color}"></span><div class="n c-${k.color}">${k.value}</div><div class="l">${k.label}</div>`;
+    box.appendChild(d);});
+}
+
+/* ---- 渲染：监测分类 ---- */
+function renderCategories(cats){
+  const el=document.getElementById('catList');if(!el)return;el.innerHTML='';
+  cats.forEach(c=>{const h=document.createElement('div');
+    h.style.cssText='font-size:12px;color:var(--cyan);letter-spacing:1px;margin:4px 0 8px;';
+    h.textContent='■ '+c.group;el.appendChild(h);
+    c.items.forEach(it=>{const r=document.createElement('div');r.className='srow';
+      r.innerHTML=`<span class="nm">${it.name}</span><span><span class="vl c-cyan">${it.count}</span> 点 <span class="st ${it.status}">${STATUS_TEXT[it.status]||''}</span></span>`;
+      el.appendChild(r);});});
+}
+
+/* ---- 渲染：重点测点实时值 ---- */
+function renderLives(list){
+  const el=document.getElementById('liveList');if(!el)return;el.innerHTML='';
+  list.forEach(v=>{const r=document.createElement('div');r.className='srow';
+    r.innerHTML=`<span class="nm">${v.name}</span><span class="vl c-${STATUS_COLOR[v.status]||'green'}">${v.value}</span>`;
+    el.appendChild(r);});
+}
+
+/* ---- 渲染：预警事件 ---- */
+function renderAlarms(list){
+  const el=document.getElementById('alarmList');if(!el)return;el.innerHTML='';
+  list.forEach(a=>{const d=document.createElement('div');d.className='alarm '+a.level;
+    d.innerHTML=`<span class="lv">${a.levelText}</span><div class="ct"><b>${a.point}</b><br>${a.message}<br><span class="t">${a.time}</span></div>`;
+    el.appendChild(d);});
+}
+
+/* ---- 渲染：底部关键指标 ---- */
+function renderFooter(list){
+  const el=document.querySelector('.footer');if(!el)return;el.innerHTML='';
+  list.forEach(f=>{const d=document.createElement('div');d.className='mini';
+    d.innerHTML=`<div class="l">${f.label}</div><div><span class="n c-${f.color}">${f.value}</span><span class="u">${f.unit}</span></div>`;
+    el.appendChild(d);});
+}
+
+/* ---- 全局数据与渲染入口 ---- */
+let DASH=FALLBACK;
+function renderAll(data){
+  DASH=data||FALLBACK;
+  renderMeta(DASH.meta);
+  renderKpis(DASH.kpis||[]);
+  renderCategories(DASH.categories||[]);
+  renderLives(DASH.liveValues||[]);
+  renderAlarms(DASH.alarms||[]);
+  renderFooter(DASH.footer||[]);
+  initMap3D(DASH.map||FALLBACK.map);
+  drawTrend();
+}
+
+/* ---- 拉取接口数据 ---- */
+fetch('/api/dashboard',{cache:'no-store'})
+  .then(r=>r.ok?r.json():Promise.reject(r.status))
+  .then(res=>renderAll(res&&res.data?res.data:FALLBACK))
+  .catch(err=>{console.warn('接口获取失败，使用本地兜底数据：',err);renderAll(FALLBACK);});
+
+/* ---- 3D terrain in center panel (Three.js)，由接口 map 数据驱动 ---- */
+function initMap3D(mapData){
+  if(!window.THREE){document.getElementById('map3d').innerHTML='<div style="padding:20px;color:#7f92c0">Three.js 加载失败：请确认 three.min.js 与本文件同目录</div>';return;}
+  const host=document.getElementById('map3d');
+  host.innerHTML=''; // 重新渲染时清空
+  const {Scene,PerspectiveCamera,WebGLRenderer,Color,Fog,PlaneGeometry,MeshStandardMaterial,Mesh,
+    DirectionalLight,AmbientLight,HemisphereLight,BufferAttribute,Vector3,CatmullRomCurve3,
+    TubeGeometry,MeshBasicMaterial,SphereGeometry,CylinderGeometry,Group,CanvasTexture,
+    SpriteMaterial,Sprite,AdditiveBlending}=THREE;
+  const scene=new Scene(); scene.background=null; scene.fog=new Fog(0x060b1a,420,900);
+  const camera=new PerspectiveCamera(50,1,0.1,3000);
+  const renderer=new WebGLRenderer({antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  host.appendChild(renderer.domElement);
+  function resize(){const w=host.clientWidth||host.offsetWidth||800,h=host.clientHeight||host.offsetHeight||480;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  scene.add(new AmbientLight(0x3a4a7a,0.9));
+  scene.add(new HemisphereLight(0x9fc4ff,0x0a1430,0.6));
+  const sun=new DirectionalLight(0xdfe8ff,1.1);sun.position.set(-200,300,160);scene.add(sun);
+
+  const SIZE=600,SEG=140;
+  const geo=new PlaneGeometry(SIZE,SIZE,SEG,SEG);geo.rotateX(-Math.PI/2);
+  const pos=geo.attributes.position;
+  function hash(x,z){let n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);}
+  function vnoise(x,z){const xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi;
+    const a=hash(xi,zi),b=hash(xi+1,zi),c=hash(xi,zi+1),d=hash(xi+1,zi+1);
+    const u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;}
+  function fbm(x,z){let s=0,a=0.5,f=1;for(let i=0;i<5;i++){s+=a*vnoise(x*f,z*f);f*=2;a*=0.5;}return s;}
+  function valley(x,z){const cx=Math.sin((z/SIZE)*Math.PI*1.4)*120;return Math.max(0,1-Math.abs(x-cx)/90);}
+  function heightAt(x,z){let h=fbm((x+300)/120,(z+300)/120);h=Math.pow(h,1.3);let H=h*150;const v=valley(x,z);H*=(1-0.85*v);H-=v*18;return H;}
+  const colA=new Color(0x16351f),colB=new Color(0x3f5a2a),colC=new Color(0x8a8560),colRock=new Color(0x5a5240),colSnow=new Color(0xb9c6d8);
+  const cols=new Float32Array(pos.count*3);
+  for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);const H=heightAt(x,z);pos.setY(i,H);
+    const t=Math.min(1,Math.max(0,H/150));const c=new Color();
+    if(t<0.12)c.copy(colA).lerp(colB,t/0.12);
+    else if(t<0.45)c.copy(colB).lerp(colC,(t-0.12)/0.33);
+    else if(t<0.72)c.copy(colC).lerp(colRock,(t-0.45)/0.27);
+    else c.copy(colRock).lerp(colSnow,(t-0.72)/0.28);
+    c.lerp(new Color(0x24406a),valley(x,z)*0.25);
+    cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
+  geo.setAttribute('color',new BufferAttribute(cols,3));geo.computeVertexNormals();
+  scene.add(new Mesh(geo,new MeshStandardMaterial({vertexColors:true,roughness:0.95,metalness:0})));
+  scene.add(new Mesh(geo.clone(),new MeshBasicMaterial({color:0x1e3a6a,wireframe:true,transparent:true,opacity:0.08})));
+
+  // route
+  const routePts=[];const Nr=24;
+  for(let i=0;i<=Nr;i++){const z=-SIZE/2+SIZE*i/Nr+20;const x=Math.sin((z/SIZE)*Math.PI*1.4)*120+Math.sin(i*0.7)*8;routePts.push(new Vector3(x,heightAt(x,z)+4,z));}
+  const curve=new CatmullRomCurve3(routePts);
+  scene.add(new Mesh(new TubeGeometry(curve,240,2.4,8,false),new MeshBasicMaterial({color:0xff5a4d})));
+  scene.add(new Mesh(new TubeGeometry(curve,240,4.2,8,false),new MeshBasicMaterial({color:0xff5a4d,transparent:true,opacity:0.18,blending:AdditiveBlending})));
+
+  function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+  function label(text,color){const c=document.createElement('canvas');c.width=256;c.height=72;const g=c.getContext('2d');
+    g.fillStyle='rgba(6,16,34,0.82)';rr(g,2,2,252,68,8);g.fill();g.strokeStyle=color;g.lineWidth=2;rr(g,2,2,252,68,8);g.stroke();
+    g.fillStyle='#eaf3ff';g.font='bold 30px PingFang SC,Microsoft YaHei,sans-serif';g.textBaseline='middle';g.textAlign='center';g.fillText(text,128,38);
+    const sp=new Sprite(new SpriteMaterial({map:new CanvasTexture(c),transparent:true,depthTest:false}));sp.scale.set(50,14,1);return sp;}
+  const s0=routePts[0],sN=routePts[routePts.length-1];
+  let L=label(mapData.startLabel||'起点','#17d6a0');L.position.set(s0.x,s0.y+24,s0.z);scene.add(L);
+  let LN=label(mapData.endLabel||'终点','#17d6a0');LN.position.set(sN.x,sN.y+24,sN.z);scene.add(LN);
+  const kp=curve.getPointAt(0.80);const KL=label(mapData.keyLabel||'重点测点','#ff9a3c');KL.position.set(kp.x,kp.y+30,kp.z);scene.add(KL);
+
+  // points — 由接口 map.points 数据驱动
+  const COL={ok:0x17d6a0,y:0xffd23a,o:0xff9a3c,r:0xff4d5e,off:0x8fa6d8};
+  const seed=(mapData.points||[]).map(p=>[p.t,p.status]);
+  const marks=[];
+  seed.forEach(([t,st])=>{const p=curve.getPointAt(t);const g=new Group();
+    const pil=new Mesh(new CylinderGeometry(0.8,0.8,16,10),new MeshBasicMaterial({color:COL[st],transparent:true,opacity:0.55}));pil.position.set(p.x,p.y+8,p.z);g.add(pil);
+    const sph=new Mesh(new SphereGeometry(2.4,16,16),new MeshBasicMaterial({color:COL[st]}));sph.position.set(p.x,p.y+17,p.z);g.add(sph);
+    if(st==='r'||st==='o'){const halo=new Mesh(new SphereGeometry(3.6,16,16),new MeshBasicMaterial({color:COL[st],transparent:true,opacity:0.3,blending:AdditiveBlending}));halo.position.copy(sph.position);g.add(halo);g.userData.halo=halo;}
+    scene.add(g);marks.push(g);});
+
+  // camera orbit
+  let theta=Math.PI*0.15,phi=0.95,radius=560,auto=true;
+  function updCam(){camera.position.set(radius*Math.sin(phi)*Math.sin(theta),radius*Math.cos(phi),radius*Math.sin(phi)*Math.cos(theta));camera.lookAt(0,20,0);}
+  resize();updCam();
+  let drag=false,px=0,py=0;
+  renderer.domElement.addEventListener('pointerdown',e=>{drag=true;auto=false;px=e.clientX;py=e.clientY;});
+  addEventListener('pointerup',()=>drag=false);
+  addEventListener('pointermove',e=>{if(!drag)return;theta-=(e.clientX-px)*0.005;phi=Math.max(0.4,Math.min(1.3,phi-(e.clientY-py)*0.004));px=e.clientX;py=e.clientY;updCam();});
+  renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(320,Math.min(880,radius+e.deltaY*0.4));updCam();},{passive:false});
+  addEventListener('resize',resize);
+  let tms=0;
+  // 用 ResizeObserver 替代每帧 clientWidth 读取，避免强制 layout 导致画面抖动
+  if(window.ResizeObserver){
+    new ResizeObserver(()=>resize()).observe(host);
+  }
+  (function loop(){requestAnimationFrame(loop);tms+=0.016;
+    if(auto){theta+=0.0012;updCam();}
+    marks.forEach(g=>{if(g.userData.halo){const s=1+0.35*Math.sin(tms*2.5);g.userData.halo.scale.setScalar(s);g.userData.halo.material.opacity=0.3*(1.1-0.5*Math.sin(tms*2.5));}});
+    renderer.render(scene,camera);})();
+}
+
+/* ---- trend canvas ---- */
+const cv=document.getElementById('trend');
+function drawTrend(){
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*dpr;cv.height=h*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);
+  g.clearRect(0,0,w,h);
+  // grid
+  g.strokeStyle='rgba(127,146,192,.15)';g.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=10+i*(h-30)/4;g.beginPath();g.moveTo(36,y);g.lineTo(w-8,y);g.stroke();}
+  const tr=(DASH&&DASH.trend)||FALLBACK.trend;
+  const sr=tr.series||FALLBACK.trend.series;
+  const N=tr.points||48;const x0=36,x1=w-8,pad=10,bh=h-30;
+  function line(data,color,fill){
+    g.beginPath();
+    data.forEach((v,i)=>{const x=x0+(x1-x0)*i/(N-1);const y=pad+bh*(1-v);i?g.lineTo(x,y):g.moveTo(x,y);});
+    g.strokeStyle=color;g.lineWidth=2;g.stroke();
+    if(fill){g.lineTo(x1,pad+bh);g.lineTo(x0,pad+bh);g.closePath();g.fillStyle=fill;g.fill();}
+  }
+  // synthesize 3 series (0..1)
+  const disp=[],rain=[],pore=[];
+  for(let i=0;i<N;i++){
+    disp.push(0.25+0.5*(i/(N-1))+0.04*Math.sin(i/3));
+    rain.push(Math.max(0,0.1+0.6*Math.exp(-Math.pow((i-30)/6,2))+0.05*Math.sin(i/2)));
+    pore.push(0.3+0.4*(i>26?(i-26)/22:0)+0.03*Math.sin(i/4));
+  }
+  line(rain,(sr.rain&&sr.rain.color)||'#ffcf3a','rgba(255,207,58,.10)');
+  line(pore,(sr.pore&&sr.pore.color)||'#17d6a0',null);
+  line(disp,(sr.displacement&&sr.displacement.color)||'#2bd4ff',null);
+}
+window.addEventListener('resize',drawTrend);
+
+/* ---- 切换中间面板视图（三维地形 / 示意图 tab） ---- */
+function switchTab(tab) {
+  const map3d   = document.getElementById('map3d');
+  const imgView = document.getElementById('imgView');
+  const tab3d   = document.getElementById('tab3d');
+  const tabImg  = document.getElementById('tabImg');
+  const title   = document.getElementById('centerPanelTitle');
+  const legend  = document.getElementById('centerLegend');
+  const tag     = document.getElementById('centerMapTag');
+
+  const activeStyle   = 'color:#2bd4ff;background:rgba(43,212,255,.15);';
+  const inactiveStyle = 'color:var(--sub);background:transparent;';
+
+  if (tab === '3d') {
+    map3d.style.opacity = '1';
+    map3d.style.pointerEvents = 'auto';
+    imgView.style.display = 'none';
+    legend.style.display = '';
+    tag.style.display = '';
+    title.textContent = '全线测点分布 · 三维地形';
+    tab3d.style.cssText  += activeStyle;
+    tabImg.style.cssText += inactiveStyle;
+    // 修正 svg stroke 颜色
+    tab3d.querySelector('svg path,svg rect,svg circle') && (tab3d.querySelectorAll('svg [stroke]').forEach(el=>el.setAttribute('stroke','#2bd4ff')));
+    tabImg.querySelectorAll('svg [stroke]').forEach(el=>el.setAttribute('stroke','var(--sub)'));
+  } else {
+    map3d.style.opacity = '0';
+    map3d.style.pointerEvents = 'none';
+    imgView.style.display = 'flex';
+    legend.style.display = 'none';
+    tag.style.display = 'none';
+    title.textContent = '全线测点分布 · 3D 实景图';
+    tab3d.style.cssText  += inactiveStyle;
+    tabImg.style.cssText += activeStyle;
+    tab3d.querySelectorAll('svg [stroke]').forEach(el=>el.setAttribute('stroke','var(--sub)'));
+    tabImg.querySelectorAll('svg [stroke]').forEach(el=>el.setAttribute('stroke','#2bd4ff'));
+  }
+}
+</script>
+</body>
+</html>

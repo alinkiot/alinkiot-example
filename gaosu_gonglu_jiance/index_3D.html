@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高速公路边坡监测 · 三维地形总览</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--cyan:#2bd4ff;--blue:#3d7bff;--txt:#e6f0ff;--sub:#8fa6d8;
+    --green:#17d6a0;--yellow:#ffd23a;--orange:#ff9a3c;--red:#ff4d5e;}
+  html,body{height:100%;overflow:hidden;background:#04070f;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:var(--txt);}
+  #app{position:fixed;inset:0;}
+  canvas{display:block;}
+  /* top title */
+  .top{position:fixed;top:0;left:0;right:0;height:84px;pointer-events:none;z-index:5;
+    display:flex;align-items:center;justify-content:center;}
+  .top .bar{position:absolute;top:22px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:18px;}
+  .top h1{font-size:30px;font-weight:800;letter-spacing:8px;
+    background:linear-gradient(180deg,#fff,#6fc0ff);-webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 2px 18px rgba(43,160,255,.4);}
+  .deco{width:160px;height:14px;position:relative;}
+  .deco::before{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(115deg,var(--cyan) 0 14px,transparent 14px 26px);
+    opacity:.8;-webkit-mask:linear-gradient(90deg,transparent,#000 60%);mask:linear-gradient(90deg,transparent,#000 60%);}
+  .deco.r::before{transform:scaleX(-1);}
+  .top::after{content:"";position:absolute;top:62px;left:50%;transform:translateX(-50%);
+    width:620px;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+  /* info cards */
+  .card{position:fixed;z-index:5;width:300px;
+    background:linear-gradient(180deg,rgba(14,34,78,.72),rgba(8,20,48,.5));
+    border:1px solid rgba(70,140,255,.35);border-radius:4px;backdrop-filter:blur(2px);
+    box-shadow:0 0 24px rgba(20,70,180,.25) inset;}
+  .card .h{display:flex;align-items:center;gap:8px;padding:9px 14px;
+    background:linear-gradient(90deg,rgba(43,120,255,.55),transparent);
+    font-size:16px;font-weight:700;letter-spacing:3px;color:#cfe6ff;border-bottom:1px solid rgba(70,140,255,.25);}
+  .card .h::before{content:"";width:6px;height:16px;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+  .card .b{padding:12px 14px;font-size:13.5px;line-height:1.95;color:#cdd9f5;}
+  .card .b b{color:var(--cyan);font-weight:600;}
+  .corner{position:absolute;width:10px;height:10px;border:2px solid var(--cyan);}
+  .c1{top:-1px;left:-1px;border-right:0;border-bottom:0}.c2{top:-1px;right:-1px;border-left:0;border-bottom:0}
+  .c3{bottom:-1px;left:-1px;border-right:0;border-top:0}.c4{bottom:-1px;right:-1px;border-left:0;border-top:0}
+  #cardL1{left:28px;top:108px;} #cardL2{left:28px;top:300px;} #cardR1{right:28px;top:108px;width:280px;}
+  /* kpi strip */
+  .kstrip{position:fixed;right:28px;top:300px;z-index:5;width:280px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .kc{background:linear-gradient(180deg,rgba(14,34,78,.72),rgba(8,20,48,.5));border:1px solid rgba(70,140,255,.3);border-radius:4px;padding:10px 12px;}
+  .kc .n{font-size:26px;font-weight:800;line-height:1;}
+  .kc .l{font-size:11.5px;color:var(--sub);margin-top:5px;}
+  .c-cyan{color:var(--cyan)}.c-green{color:var(--green)}.c-yellow{color:var(--yellow)}.c-orange{color:var(--orange)}.c-red{color:var(--red)}.c-sub{color:var(--sub)}
+  /* legend + brand */
+  .legend{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;
+    display:flex;gap:20px;font-size:12.5px;color:var(--sub);background:rgba(6,12,28,.55);
+    padding:9px 18px;border-radius:20px;border:1px solid rgba(70,140,255,.25);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .legend i{width:11px;height:11px;border-radius:50%;}
+  .brand{position:fixed;right:16px;bottom:14px;z-index:5;font-size:12px;color:rgba(143,166,216,.6);letter-spacing:1px;}
+  .tip{position:fixed;left:16px;bottom:14px;z-index:5;font-size:12px;color:rgba(143,166,216,.5);}
+  .loading{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:16px;letter-spacing:4px;}
+  /* back / restore button */
+  .back-btn{position:fixed;top:22px;right:28px;z-index:8;display:inline-flex;align-items:center;gap:8px;
+    padding:10px 20px;font-size:15px;font-weight:700;letter-spacing:2px;cursor:pointer;
+    color:#dcebff;text-decoration:none;border-radius:9px;
+    border:1px solid rgba(103,182,255,.55);
+    background:linear-gradient(180deg,rgba(61,123,255,.28),rgba(61,123,255,.12));
+    box-shadow:0 0 14px rgba(61,123,255,.25) inset;transition:all .2s;}
+  .back-btn:hover{color:#fff;border-color:#67b6ff;
+    background:linear-gradient(180deg,rgba(61,123,255,.5),rgba(61,123,255,.22));
+    box-shadow:0 0 18px rgba(103,182,255,.5);}
+  .back-btn::before{content:"‹";font-size:22px;line-height:1;margin-top:-2px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<a class="back-btn" href="index.html" onclick="try{if(document.exitFullscreen)document.exitFullscreen();}catch(e){}">全线大盘</a>
+<div class="loading" id="loading">三维地形加载中…</div>
+
+<div class="top"><div class="bar">
+  <span class="deco"></span><h1>高速公路边坡监测</h1><span class="deco r"></span>
+</div></div>
+
+<div class="card" id="cardL1">
+  <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+  <div class="h">工程概况</div>
+  <div class="b">xx 高速 <b>K98 — K135</b> 段，沿河谷与高切坡布设自动化监测网，全长 <b>约 37 km</b>。覆盖高边坡、软基路段、滑坡易发段共 <b>42</b> 处测点。</div>
+</div>
+<div class="card" id="cardL2">
+  <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+  <div class="h">监测内容</div>
+  <div class="b"><b>位移</b>：GNSS / 拉线位移 / 测斜 / 静力水准<br><b>环境</b>：渗压 / 雨量 / 含水率 / 温湿度<br><b>结构应力</b>：锚索应力 / 挡墙应力<br>RS485 Modbus 数采 · 4G · 物联网连接层 · MQTT 上云</div>
+</div>
+<div class="card" id="cardR1">
+  <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
+  <div class="h">实时态势</div>
+  <div class="b">全线测点 <b>实时在线</b>，分级预警联动推送。当前存在 <b style="color:var(--red)">1</b> 处红色、<b style="color:var(--orange)">3</b> 处橙色、<b style="color:var(--yellow)">2</b> 处黄色预警，重点关注 K108+500 高边坡与 K130+000 挡墙。</div>
+</div>
+
+<div class="kstrip">
+  <div class="kc"><div class="n c-cyan">42</div><div class="l">测点总数</div></div>
+  <div class="kc"><div class="n c-green">40</div><div class="l">在线运行</div></div>
+  <div class="kc"><div class="n c-orange">3</div><div class="l">橙色预警</div></div>
+  <div class="kc"><div class="n c-red">1</div><div class="l">红色预警</div></div>
+</div>
+
+<div class="legend">
+  <span><i style="background:#17d6a0"></i>正常</span>
+  <span><i style="background:#ffd23a"></i>黄色预警</span>
+  <span><i style="background:#ff9a3c"></i>橙色预警</span>
+  <span><i style="background:#ff4d5e"></i>红色预警</span>
+  <span><i style="background:#8fa6d8"></i>离线/维护</span>
+</div>
+<div class="tip">鼠标拖动旋转 · 滚轮缩放</div>
+<div class="brand">示意三维场景 · 非真实地理数据</div>
+
+<script src="three.min.js"></script>
+<script>
+if(!window.THREE){document.getElementById('loading').textContent='Three.js 加载失败，请确认 three.min.js 与本文件在同一目录';}
+else{
+const {Scene,PerspectiveCamera,WebGLRenderer,Color,Fog,PlaneGeometry,MeshStandardMaterial,Mesh,
+  DirectionalLight,AmbientLight,HemisphereLight,BufferAttribute,DoubleSide,
+  Vector3,CatmullRomCurve3,TubeGeometry,MeshBasicMaterial,SphereGeometry,
+  CylinderGeometry,Group,CanvasTexture,SpriteMaterial,Sprite,AdditiveBlending}=THREE;
+
+const app=document.getElementById('app');
+const scene=new Scene();
+scene.background=new Color(0x04070f);
+scene.fog=new Fog(0x04070f, 420, 900);
+
+const camera=new PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 3000);
+const renderer=new WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+app.appendChild(renderer.domElement);
+
+// ---- lights ----
+scene.add(new AmbientLight(0x3a4a7a, 0.9));
+scene.add(new HemisphereLight(0x9fc4ff, 0x0a1430, 0.6));
+const sun=new DirectionalLight(0xdfe8ff, 1.1); sun.position.set(-200,300,160); scene.add(sun);
+
+// ---- terrain (procedural) ----
+const SIZE=600, SEG=160;
+const geo=new PlaneGeometry(SIZE,SIZE,SEG,SEG);
+geo.rotateX(-Math.PI/2);
+const pos=geo.attributes.position;
+// value-noise height field
+function hash(x,z){let n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);}
+function vnoise(x,z){const xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi;
+  const a=hash(xi,zi),b=hash(xi+1,zi),c=hash(xi,zi+1),d=hash(xi+1,zi+1);
+  const u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);
+  return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;}
+function fbm(x,z){let s=0,a=0.5,f=1;for(let i=0;i<5;i++){s+=a*vnoise(x*f,z*f);f*=2;a*=0.5;}return s;}
+// a river valley carved along a sine path through the middle
+function valley(x,z){ // returns 0..1 depth factor (1 = deep valley)
+  const cx = Math.sin((z/SIZE)*Math.PI*1.4)*120; // valley center x shifts with z
+  const d=Math.abs(x-cx);
+  return Math.max(0, 1 - d/90);
+}
+const colA=new Color(0x16351f), colB=new Color(0x3f5a2a), colC=new Color(0x8a8560), colRock=new Color(0x5a5240), colSnow=new Color(0xb9c6d8);
+const colors=new Float32Array(pos.count*3);
+let maxH=0;
+const H=[];
+for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i), z=pos.getZ(i);
+  let h=fbm((x+300)/120,(z+300)/120);
+  h=Math.pow(h,1.3);
+  let height=h*150;
+  const v=valley(x,z);
+  height*= (1-0.85*v);        // carve valley
+  height-= v*18;              // dig riverbed
+  pos.setY(i,height);
+  H.push(height); if(height>maxH)maxH=height;
+}
+for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i), z=pos.getZ(i), height=H[i];
+  const t=Math.min(1,Math.max(0,height/150));
+  const c=new Color();
+  if(t<0.12) c.copy(colA).lerp(colB,t/0.12);
+  else if(t<0.45) c.copy(colB).lerp(colC,(t-0.12)/0.33);
+  else if(t<0.72) c.copy(colC).lerp(colRock,(t-0.45)/0.27);
+  else c.copy(colRock).lerp(colSnow,(t-0.72)/0.28);
+  // slope darkening
+  const v=valley(x,z); c.lerp(new Color(0x24406a), v*0.25);
+  colors[i*3]=c.r;colors[i*3+1]=c.g;colors[i*3+2]=c.b;
+}
+geo.setAttribute('color',new BufferAttribute(colors,3));
+geo.computeVertexNormals();
+const terrain=new Mesh(geo,new MeshStandardMaterial({vertexColors:true,roughness:0.95,metalness:0.0,flatShading:false}));
+scene.add(terrain);
+
+// height sampler
+function heightAt(x,z){
+  // approximate via same formula
+  let h=fbm((x+300)/120,(z+300)/120); h=Math.pow(h,1.3); let height=h*150;
+  const v=valley(x,z); height*=(1-0.85*v); height-=v*18; return height;
+}
+
+// ---- grid glow under terrain edge ----
+const gridGeo=new PlaneGeometry(SIZE,SIZE,1,1); gridGeo.rotateX(-Math.PI/2);
+// subtle wireframe accent
+const wire=new Mesh(geo.clone(), new MeshBasicMaterial({color:0x1e3a6a,wireframe:true,transparent:true,opacity:0.08}));
+scene.add(wire);
+
+// ---- highway route along the valley ----
+const routePts=[];
+const N=24;
+for(let i=0;i<=N;i++){
+  const z=-SIZE/2+ (SIZE)*i/N + 20;
+  const x=Math.sin((z/SIZE)*Math.PI*1.4)*120 + Math.sin(i*0.7)*8;
+  const y=heightAt(x,z)+4;
+  routePts.push(new Vector3(x,y,z));
+}
+const curve=new CatmullRomCurve3(routePts);
+const tube=new TubeGeometry(curve, 240, 2.4, 8, false);
+const road=new Mesh(tube,new MeshBasicMaterial({color:0xff5a4d}));
+scene.add(road);
+// glow tube
+const tube2=new TubeGeometry(curve,240,4.2,8,false);
+scene.add(new Mesh(tube2,new MeshBasicMaterial({color:0xff5a4d,transparent:true,opacity:0.18,blending:AdditiveBlending})));
+
+// start/end markers
+function label(text,color){
+  const c=document.createElement('canvas');c.width=256;c.height=72;const g=c.getContext('2d');
+  g.fillStyle='rgba(6,16,34,0.82)';roundRect(g,2,2,252,68,8);g.fill();
+  g.strokeStyle=color;g.lineWidth=2;roundRect(g,2,2,252,68,8);g.stroke();
+  g.fillStyle='#eaf3ff';g.font='bold 30px PingFang SC,Microsoft YaHei,sans-serif';g.textBaseline='middle';g.textAlign='center';
+  g.fillText(text,128,38);
+  const tex=new CanvasTexture(c);const sp=new Sprite(new SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  sp.scale.set(44,12.4,1);return sp;
+}
+function roundRect(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+
+const s0=routePts[0], sN=routePts[routePts.length-1];
+const l0=label('起点 K98',0x17d6a0); l0.position.set(s0.x,s0.y+22,s0.z); scene.add(l0);
+const lN=label('终点 K135',0x17d6a0); lN.position.set(sN.x,sN.y+22,sN.z); scene.add(lN);
+
+// ---- monitoring points along route ----
+const COL={ok:0x17d6a0,y:0xffd23a,o:0xff9a3c,r:0xff4d5e,off:0x8fa6d8};
+// distribution matching dashboard: 1 red, 3 orange, 2 yellow, 2 offline, rest ok (14 shown)
+const pts=[
+  [0.10,'ok'],[0.18,'y'],[0.26,'o'],[0.33,'ok'],[0.40,'o'],[0.47,'ok'],
+  [0.54,'off'],[0.60,'y'],[0.66,'ok'],[0.72,'o'],[0.80,'r'],[0.86,'ok'],[0.92,'off'],[0.97,'ok']
+];
+const marks=[];
+pts.forEach(([t,st])=>{
+  const p=curve.getPointAt(t);
+  const g=new Group();
+  // pillar
+  const pil=new Mesh(new CylinderGeometry(0.8,0.8,16,10),new MeshBasicMaterial({color:COL[st],transparent:true,opacity:0.55}));
+  pil.position.set(p.x,p.y+8,p.z); g.add(pil);
+  // top sphere
+  const sph=new Mesh(new SphereGeometry(2.4,16,16),new MeshBasicMaterial({color:COL[st]}));
+  sph.position.set(p.x,p.y+17,p.z); g.add(sph);
+  // halo for alarms
+  if(st==='r'||st==='o'){
+    const halo=new Mesh(new SphereGeometry(3.6,16,16),new MeshBasicMaterial({color:COL[st],transparent:true,opacity:0.3,blending:AdditiveBlending}));
+    halo.position.copy(sph.position); g.add(halo); halo.userData.pulse=true;
+    g.userData.halo=halo;
+  }
+  scene.add(g); marks.push(g);
+});
+
+// a couple of key labels
+const kp=curve.getPointAt(0.80);
+const kl=label('K108+500 高边坡',0xff9a3c); kl.position.set(kp.x,kp.y+30,kp.z); scene.add(kl);
+const kp2=curve.getPointAt(0.80); // red point near 0.80..0.80
+const kr=curve.getPointAt(0.80);
+
+// ---- camera orbit ----
+let theta=Math.PI*0.15, phi=0.95, radius=560, auto=true;
+function updCam(){
+  camera.position.set(
+    radius*Math.sin(phi)*Math.sin(theta),
+    radius*Math.cos(phi),
+    radius*Math.sin(phi)*Math.cos(theta)
+  );
+  camera.lookAt(0,20,0);
+}
+updCam();
+
+// interaction
+let drag=false,px=0,py=0;
+renderer.domElement.addEventListener('pointerdown',e=>{drag=true;auto=false;px=e.clientX;py=e.clientY;});
+addEventListener('pointerup',()=>drag=false);
+addEventListener('pointermove',e=>{if(!drag)return;theta-=(e.clientX-px)*0.005;phi=Math.max(0.35,Math.min(1.35,phi-(e.clientY-py)*0.004));px=e.clientX;py=e.clientY;updCam();});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(300,Math.min(900,radius+e.deltaY*0.4));updCam();},{passive:false});
+
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+document.getElementById('loading').style.display='none';
+let tms=0;
+function animate(){
+  requestAnimationFrame(animate);
+  tms+=0.016;
+  if(auto){theta+=0.0012;updCam();}
+  marks.forEach(g=>{if(g.userData.halo){const s=1+0.35*Math.sin(tms*2.5);g.userData.halo.scale.setScalar(s);g.userData.halo.material.opacity=0.3*(1.1-0.5*Math.sin(tms*2.5));}});
+  renderer.render(scene,camera);
+}
+animate();
+}
+</script>
+</body>
+</html>

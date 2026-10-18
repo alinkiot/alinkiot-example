@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "title": "高速公路边坡自动化监测 · 全线总览大盘",
+    "subtitle": "边坡位移 · 孔隙水压 · 降雨 · 支护应力全天候在线监测　｜　毫米级形变实时感知，三级预警抢在失稳之前",
+    "section": "xx 高速 K98 — K135 段"
+  },
+  "kpis": [
+    { "label": "测点总数", "value": 42, "color": "cyan" },
+    { "label": "在线运行", "value": 40, "color": "green" },
+    { "label": "黄色预警", "value": 2, "color": "yellow" },
+    { "label": "橙色预警", "value": 3, "color": "orange" },
+    { "label": "红色预警", "value": 1, "color": "red" },
+    { "label": "离线/维护", "value": 2, "color": "sub" }
+  ],
+  "categories": [
+    {
+      "group": "位移监测",
+      "items": [
+        { "name": "GNSS 北斗接收机", "count": 8, "status": "ok" },
+        { "name": "拉线位移计", "count": 5, "status": "y" },
+        { "name": "固定式测斜仪", "count": 5, "status": "ok" },
+        { "name": "压差式静力水准仪", "count": 4, "status": "ok" }
+      ]
+    },
+    {
+      "group": "环境监测",
+      "items": [
+        { "name": "渗压计", "count": 4, "status": "o" },
+        { "name": "翻斗式雨量计", "count": 3, "status": "y" },
+        { "name": "土壤含水率(TDR)", "count": 3, "status": "ok" },
+        { "name": "温湿度传感器", "count": 3, "status": "ok" }
+      ]
+    },
+    {
+      "group": "结构应力监测",
+      "items": [
+        { "name": "锚杆/锚索应力计", "count": 4, "status": "ok" },
+        { "name": "挡土墙钢筋应力计", "count": 3, "status": "r" }
+      ]
+    }
+  ],
+  "liveValues": [
+    { "name": "GNSS 累计位移", "value": "38.6 mm", "status": "o" },
+    { "name": "深部位移(测斜)", "value": "14.2 mm", "status": "y" },
+    { "name": "孔隙水压", "value": "86.4 kPa", "status": "y" },
+    { "name": "累计雨量(24h)", "value": "128.6 mm", "status": "o" },
+    { "name": "1h 雨强", "value": "42.3 mm/h", "status": "o" },
+    { "name": "土壤含水率", "value": "41.2 %", "status": "ok" },
+    { "name": "环境温度", "value": "23.4 ℃", "status": "ok" },
+    { "name": "环境湿度", "value": "78 %", "status": "ok" },
+    { "name": "锚索应力", "value": "86 MPa", "status": "ok" },
+    { "name": "挡墙应力", "value": "268 MPa", "status": "r" }
+  ],
+  "alarms": [
+    { "level": "r", "levelText": "红色", "point": "K130+000 挡土墙钢筋应力计 应力-02", "message": "结构应力超红色阈值，疑似支挡结构内力异常，已短信+App推送", "time": "14:28:11" },
+    { "level": "o", "levelText": "橙色", "point": "K108+500 GNSS-07", "message": "累计位移 38.6mm 超橙色阈值，边坡表面持续位移", "time": "13:52:40" },
+    { "level": "o", "levelText": "橙色", "point": "K108+500 渗压计 渗压-05", "message": "降雨后孔隙水压快速上升至 86.4kPa", "time": "13:49:02" },
+    { "level": "o", "levelText": "橙色", "point": "K121+200 雨量计 雨量-03", "message": "1h 雨强 42.3mm/h 超橙色阈值，降雨强度持续偏高", "time": "13:40:55" },
+    { "level": "y", "levelText": "黄色", "point": "K115+700 拉线位移计 位移-11", "message": "表面相对位移 12.4mm 达黄色阈值", "time": "12:30:18" },
+    { "level": "y", "levelText": "黄色", "point": "K108+500 测斜仪 测斜-04", "message": "深部倾角速率上升，达黄色预警", "time": "11:58:30" }
+  ],
+  "footer": [
+    { "label": "最大累计位移<br>K108+500 GNSS-07", "value": "38.6", "unit": "mm", "color": "orange" },
+    { "label": "1h 最大雨强<br>K121+200 雨量-03", "value": "42.3", "unit": "mm/h", "color": "orange" },
+    { "label": "最高孔隙水压<br>K108+500 渗压-05", "value": "86.4", "unit": "kPa", "color": "yellow" },
+    { "label": "最大挡墙应力<br>K130+000 应力-02", "value": "268", "unit": "MPa", "color": "red" }
+  ],
+  "map": {
+    "startLabel": "起点 K98",
+    "endLabel": "终点 K135",
+    "keyLabel": "K108+500 高边坡",
+    "points": [
+      { "t": 0.10, "status": "ok" },
+      { "t": 0.18, "status": "y" },
+      { "t": 0.26, "status": "o" },
+      { "t": 0.33, "status": "ok" },
+      { "t": 0.40, "status": "o" },
+      { "t": 0.47, "status": "ok" },
+      { "t": 0.54, "status": "off" },
+      { "t": 0.60, "status": "y" },
+      { "t": 0.66, "status": "ok" },
+      { "t": 0.72, "status": "o" },
+      { "t": 0.80, "status": "r" },
+      { "t": 0.86, "status": "ok" },
+      { "t": 0.92, "status": "off" },
+      { "t": 0.97, "status": "ok" }
+    ]
+  },
+  "trend": {
+    "points": 48,
+    "series": {
+      "displacement": { "label": "累计位移 mm", "color": "#2bd4ff" },
+      "rain": { "label": "降雨量 mm", "color": "#ffcf3a" },
+      "pore": { "label": "孔隙水压 kPa", "color": "#17d6a0" }
+    }
+  }
+}
